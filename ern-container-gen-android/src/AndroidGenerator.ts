@@ -21,6 +21,7 @@ import {
 
 import _ from 'lodash'
 import path from 'path'
+import fs from 'fs'
 import readDir from 'fs-readdir-recursive'
 
 const PATH_TO_TEMPLATES_DIR = path.join(__dirname, 'templates')
@@ -147,6 +148,20 @@ export default class AndroidGenerator implements ContainerGenerator {
               config.outDir,
               pluginConfig.android.copy
             )
+          }
+
+          if (pluginConfig.android.replaceInFile) {
+            for (const r of pluginConfig.android.replaceInFile) {
+              const pathToFile = path.join(config.outDir, r.path)
+              const fileContent = fs.readFileSync(pathToFile, 'utf8')
+              const patchedFileContent = fileContent.replace(
+                RegExp(r.string, 'g'),
+                r.replaceWith
+              )
+              fs.writeFileSync(pathToFile, patchedFileContent, {
+                encoding: 'utf8',
+              })
+            }
           }
 
           if (pluginConfig.android.dependencies) {
