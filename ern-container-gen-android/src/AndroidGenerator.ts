@@ -155,6 +155,8 @@ export default class AndroidGenerator implements ContainerGenerator {
           }
 
           if (pluginConfig.android.replaceInFile) {
+            log.debug('Performing file replacements (before final Mustache render)');
+            log.debug('TODO - consider performing this after final render');
             for (const r of pluginConfig.android.replaceInFile) {
               const pathToFile = path.join(config.outDir, r.path)
               const fileContent = fs.readFileSync(pathToFile, 'utf8')
