@@ -172,6 +172,7 @@ export default class AndroidGenerator implements ContainerGenerator {
 
           if (pluginConfig.android.dependencies) {
             const transitivePrefix = 'transitive:'
+            const rawPrefix = 'raw:'
             for (let dependency of pluginConfig.android.dependencies) {
               if (dependency.startsWith(transitivePrefix)) {
                 dependency = dependency.replace(transitivePrefix, '')
@@ -180,6 +181,12 @@ export default class AndroidGenerator implements ContainerGenerator {
                 })
                 log.debug(
                   `Adding compile('${dependency}') { transitive = true }`
+                )
+              } else if (dependency.startsWith(rawPrefix)) {
+                const compileStatement = dependency.replace(rawPrefix, '')
+                mustacheView.pluginCompile.push({ compileStatement })
+                log.debug(
+                  `Adding ${compileStatement}`
                 )
               } else {
                 mustacheView.pluginCompile.push({
