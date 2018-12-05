@@ -72,6 +72,7 @@ export default class AndroidGenerator implements ContainerGenerator {
       reactNativePlugin.version
     )
     mustacheView.miniApps = config.miniApps
+    const replacements: Array<() => Promise<void>> = []
 
     await kax
       .task('Preparing Native Dependencies Injection')
@@ -154,18 +155,20 @@ export default class AndroidGenerator implements ContainerGenerator {
             )
           }
 
-          if (pluginConfig.android.replaceInFile) {
-            log.debug('Performing file replacements (before final Mustache render)');
-            log.debug('TODO - consider performing this after final render');
-            for (const r of pluginConfig.android.replaceInFile) {
-              const pathToFile = path.join(config.outDir, r.path)
-              const fileContent = fs.readFileSync(pathToFile, 'utf8')
-              const patchedFileContent = fileContent.replace(
-                RegExp(r.string, 'g'),
-                r.replaceWith
-              )
-              fs.writeFileSync(pathToFile, patchedFileContent, {
-                encoding: 'utf8',
+          const { replaceInFile } = pluginConfig.android
+          if (replaceInFile && Array.isArray(replaceInFile)) {
+            for (const r of replaceInFile) {
+              replacements.push(async () => {
+                log.debug(`Performing string replacement on ${r.path}`)
+                const pathToFile = path.join(config.outDir, r.path)
+                const fileContent = fs.readFileSync(pathToFile, 'utf8')
+                const patchedFileContent = fileContent.replace(
+                  RegExp(r.string, 'g'),
+                  r.replaceWith
+                )
+                fs.writeFileSync(pathToFile, patchedFileContent, {
+                  encoding: 'utf8',
+                })
               })
             }
           }
@@ -185,9 +188,7 @@ export default class AndroidGenerator implements ContainerGenerator {
               } else if (dependency.startsWith(rawPrefix)) {
                 const compileStatement = dependency.replace(rawPrefix, '')
                 mustacheView.pluginCompile.push({ compileStatement })
-                log.debug(
-                  `Adding ${compileStatement}`
-                )
+                log.debug(`Adding ${compileStatement}`)
               } else {
                 mustacheView.pluginCompile.push({
                   compileStatement: `compile '${dependency}'`,
@@ -236,6 +237,10 @@ export default class AndroidGenerator implements ContainerGenerator {
         mustacheView,
         pathToFile
       )
+    }
+
+    for (const replacement of replacements) {
+      await replacement()
     }
 
     log.debug('Creating miniapp activities')
